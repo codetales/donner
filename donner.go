@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+
+	"github.com/jfahrer/donner/config"
 
 	"github.com/urfave/cli"
 )
@@ -13,6 +16,18 @@ func main() {
 	app.Name = "Donner"
 	app.Usage = "Donner is a generic command wrapper. It let's you define strategies to wrap commands in things like `docker-compose exec` or `docker container run`. This is can come in very handy when developing applications in containers. Donner allows defining a wrapping strategy on a per command basis. So you don't have to worry which service to use or whether you should use `docker-compose exec` or `docker-compose run` when executing a command."
 	app.Commands = []cli.Command{
+		{
+			Name:    "test",
+			Aliases: []string{"t"},
+			Usage:   "run a command",
+			Action: func(c *cli.Context) error {
+				command := []string{"ls", "-l"}
+				command = append(command, c.Args()...)
+				out, _ := exec.Command(command[0], command[1:]...).Output()
+				fmt.Println(string(out[:]))
+				return nil
+			},
+		},
 		{
 			Name:    "run",
 			Aliases: []string{"r"},
@@ -26,6 +41,10 @@ func main() {
 				// fallbackMode := c.Bool("fallback")
 				fmt.Println(len(c.Args()))
 				fmt.Println(c.Args())
+				fmt.Println(config.Foobar())
+				command := []string{"docker-compose", "exec", "app"}
+				command = append(command, c.Args()...)
+				fmt.Println(command)
 				return nil
 			},
 		},
