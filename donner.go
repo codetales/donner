@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"syscall"
 
 	"github.com/jfahrer/donner/config"
 
@@ -30,7 +31,19 @@ func main() {
 				cmd.Stdout = os.Stdout
 				cmd.Stdin = os.Stdin
 				cmd.Stderr = os.Stderr
-				cmd.Run()
+				var waitStatus syscall.WaitStatus
+				if err := cmd.Run(); err != nil {
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+					}
+					if exitError, ok := err.(*exec.ExitError); ok {
+						waitStatus = exitError.Sys().(syscall.WaitStatus)
+						os.Exit(waitStatus.ExitStatus())
+					}
+				} else {
+					// Success
+					os.Exit(waitStatus.ExitStatus())
+				}
 				return nil
 			},
 		},
