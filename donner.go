@@ -19,12 +19,18 @@ func main() {
 		{
 			Name:    "test",
 			Aliases: []string{"t"},
-			Usage:   "run a command",
+			Usage:   "testing",
 			Action: func(c *cli.Context) error {
-				command := []string{"ls", "-l"}
+				command := []string{"docker", "container", "run"}
 				command = append(command, c.Args()...)
-				out, _ := exec.Command(command[0], command[1:]...).Output()
-				fmt.Println(string(out[:]))
+				// Simple run the programm
+				// out, _ := exec.Command(command[0], command[1:]...).Output()
+				// fmt.Println(string(out[:]))
+				cmd := exec.Command(command[0], command[1:]...)
+				cmd.Stdout = os.Stdout
+				cmd.Stdin = os.Stdin
+				cmd.Stderr = os.Stderr
+				cmd.Run()
 				return nil
 			},
 		},
