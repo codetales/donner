@@ -85,5 +85,5 @@ alias bundle='donner run --fallback --strict bundle'
 alias irb='donner run --fallback --strict irb'
 
 # copy and paste the output into your terminal or run
-#   eval $(donner aliases)
+#   eval $(donner aliases --fallback --strict)
 ```
