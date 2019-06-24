@@ -18,19 +18,18 @@ strategies:
     handler: docker_compose_exec
     service: pg
 
+default_strategy: run       # use this strategy for all undefined commands
+
 commands:
-  _default: run       # use this strategy for all undefined commands
   rails: exec
   rspec: exec
+  ruby: run
+  bundle: run
+  irb: run
   rake:               # over ride strategy definition
     strategy: run
     remove: false
   psql: exec_postgres
-
-aliases:              # additional commands to set with `donner aliases` so that they are wrapped
-- ruby
-- bundle
-- irb
 ```
 
 ## Running stuff
