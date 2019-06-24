@@ -17,6 +17,11 @@ strategies:
   exec_postgres:
     handler: docker_compose_exec
     service: pg
+  run_with_docker:
+    handler: docker_run
+    image: alpine:latest
+    volumes:
+      - "./:/usr/src/app"
 
 default_strategy: run       # use this strategy for all undefined commands
 
