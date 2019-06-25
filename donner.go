@@ -2,12 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
-	"syscall"
-
-	"github.com/jfahrer/donner/config"
 
 	"github.com/urfave/cli"
 )
@@ -15,38 +12,10 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = "Donner"
-	app.Usage = "Donner is a generic command wrapper. It let's you define strategies to wrap commands in things like `docker-compose exec` or `docker container run`. This is can come in very handy when developing applications in containers. Donner allows defining a wrapping strategy on a per command basis. So you don't have to worry which service to use or whether you should use `docker-compose exec` or `docker-compose run` when executing a command."
+	app.Usage = `Donner is a generic command wrapper. It let's you define strategies to wrap commands in things like 'docker-compose exec' or 'docker container run'. 
+	This is can come in very handy when developing applications in containers. Donner allows defining a wrapping strategy on a per command basis. 
+	So you don't have to worry which service to use or whether you should use 'docker-compose exec' or 'docker-compose run' when executing a command.`
 	app.Commands = []cli.Command{
-		{
-			Name:    "test",
-			Aliases: []string{"t"},
-			Usage:   "testing",
-			Action: func(c *cli.Context) error {
-				command := []string{"docker", "container", "run"}
-				command = append(command, c.Args()...)
-				// Simple run the programm
-				// out, _ := exec.Command(command[0], command[1:]...).Output()
-				// fmt.Println(string(out[:]))
-				cmd := exec.Command(command[0], command[1:]...)
-				cmd.Stdout = os.Stdout
-				cmd.Stdin = os.Stdin
-				cmd.Stderr = os.Stderr
-				var waitStatus syscall.WaitStatus
-				if err := cmd.Run(); err != nil {
-					if err != nil {
-						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
-					}
-					if exitError, ok := err.(*exec.ExitError); ok {
-						waitStatus = exitError.Sys().(syscall.WaitStatus)
-						os.Exit(waitStatus.ExitStatus())
-					}
-				} else {
-					// Success
-					os.Exit(waitStatus.ExitStatus())
-				}
-				return nil
-			},
-		},
 		{
 			Name:    "run",
 			Aliases: []string{"r"},
@@ -56,14 +25,23 @@ func main() {
 				cli.BoolFlag{Name: "fallback,f", Usage: "fallback to local commands"},
 			},
 			Action: func(c *cli.Context) error {
-				// strictMode := c.Bool("strict")
-				// fallbackMode := c.Bool("fallback")
-				fmt.Println(len(c.Args()))
-				fmt.Println(c.Args())
-				fmt.Println(config.Foobar())
 				command := []string{"docker-compose", "exec", "app"}
 				command = append(command, c.Args()...)
-				fmt.Println(command)
+
+				// TODO handle 'yaml' case
+				dat, err := ioutil.ReadFile(".donner.yml")
+				if err != nil {
+					return err
+				}
+
+				res, err := ParseFile(dat)
+				if err != nil {
+					return err
+				}
+
+				// TODO dispatch os call
+				fmt.Printf("%+v", res)
+
 				return nil
 			},
 		},
