@@ -17,7 +17,7 @@ strategies:
     service: app
 `
 
-func TestParsing(t *testing.T) {
+func TestParseFile(t *testing.T) {
 	// TODO add many more tests
 	tests := map[string]struct {
 		input  string
