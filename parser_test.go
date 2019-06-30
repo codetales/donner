@@ -49,7 +49,7 @@ func TestParseFile(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			res, err := ParseFile([]byte(test.input))
+			res, err := parseFile([]byte(test.input))
 			if test.expErr != nil {
 				assert.Error(t, err, test.expErr.Error())
 			} else {

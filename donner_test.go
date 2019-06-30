@@ -24,7 +24,7 @@ func TestExecCommand(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			err := ExecCommand(test.config, test.params)
+			err := execCommand(test.config, test.params)
 			assert.EqualError(t, err, test.expErr.Error())
 		})
 	}

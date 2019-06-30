@@ -40,12 +40,12 @@ func main() {
 					return err
 				}
 
-				cfg, err := ParseFile(dat)
+				cfg, err := parseFile(dat)
 				if err != nil {
 					return err
 				}
 
-				return ExecCommand(cfg, c.Args())
+				return execCommand(cfg, c.Args())
 			},
 		},
 		{
@@ -64,8 +64,8 @@ func main() {
 	}
 }
 
-// ExecCommand dispatches the call to the OS
-func ExecCommand(cfg *Cfg, params []string) error {
+// execCommand dispatches the call to the OS
+func execCommand(cfg *Cfg, params []string) error {
 	if len(params) < 1 {
 		// TODO show usage?
 		return ErrMissingCommand

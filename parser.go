@@ -63,8 +63,8 @@ func (s *Strategy) Validate() error {
 // Command is an alias for string to properly reflect the yaml definition
 type Command string
 
-// ParseFile processes the .donner.yml file
-func ParseFile(file []byte) (*Cfg, error) {
+// parseFile processes the .donner.yml file
+func parseFile(file []byte) (*Cfg, error) {
 	cfg := Cfg{}
 	err := yaml.Unmarshal([]byte(file), &cfg)
 
