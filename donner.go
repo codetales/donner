@@ -12,6 +12,7 @@ import (
 
 // ErrUndefinedCommand is thrown if a command specified can't be found in the yaml definition
 var ErrUndefinedCommand = errors.New("the command you're trying to run doesn't exist in the yaml definition")
+
 // ErrMissingCommand is thrown if no handler for execution is provided
 var ErrMissingCommand = errors.New("no command for execution specified")
 
@@ -85,6 +86,10 @@ func ExecCommand(cfg *Cfg, params []string) error {
 
 	if designatedHandler.Remove {
 		cliArgs = append(cliArgs, "--rm")
+	}
+
+	if designatedHandler.Service != "" {
+		cliArgs = append(cliArgs, designatedHandler.Service)
 	}
 
 	if designatedHandler.Image != "" {
