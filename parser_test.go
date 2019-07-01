@@ -58,3 +58,9 @@ func TestParseFile(t *testing.T) {
 		})
 	}
 }
+
+func TestListCommands(t *testing.T) {
+	cfg, err := parseFile([]byte(fullYaml))
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, cfg.ListCommands(), []string{"ls", "bundle"})
+}

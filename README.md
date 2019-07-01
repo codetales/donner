@@ -1,5 +1,5 @@
 # Donner
-[![Go Report Card](https://goreportcard.com/badge/github.com/jfahrer/donner)](https://goreportcard.com/report/github.com/jfahrer/donner)
+[![Go Report Card](https://goreportcard.com/badge/github.com/codetales/donner)](https://goreportcard.com/report/github.com/codetales/donner)
 
 :boom: Donner is a generic command wrapper. It let's you define strategies to wrap commands in things like `docker-compose exec` or `docker container run`.  
 This is can come in very handy when developing applications in containers.  

@@ -3,11 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/urfave/cli"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+
+	"github.com/urfave/cli"
 )
 
 // ErrUndefinedCommand is thrown if a command specified can't be found in the yaml definition
@@ -34,17 +35,10 @@ func main() {
 			Usage:           "run a command",
 			SkipFlagParsing: true,
 			Action: func(c *cli.Context) error {
-				// TODO handle 'yaml' case
-				dat, err := ioutil.ReadFile(".donner.yml")
+				cfg, err := readConfig()
 				if err != nil {
 					return err
 				}
-
-				cfg, err := parseFile(dat)
-				if err != nil {
-					return err
-				}
-
 				return execCommand(cfg, c.Args())
 			},
 		},
@@ -52,7 +46,17 @@ func main() {
 			Name:    "aliases",
 			Aliases: []string{"a"},
 			Usage:   "generate aliases",
+			Flags: []cli.Flag{
+				cli.BoolFlag{Name: "strict,s", Usage: "enable strict mode"},
+				cli.BoolFlag{Name: "fallback,f", Usage: "fallback to local commands"},
+			},
 			Action: func(c *cli.Context) error {
+				cfg, err := readConfig()
+				if err != nil {
+					return err
+				}
+				printAliases(cfg, c.Bool("strict"), c.Bool("fallback"))
+
 				return nil
 			},
 		},
@@ -111,4 +115,19 @@ func execCommand(cfg *Cfg, params []string) error {
 	fmt.Println(string(out))
 
 	return nil
+}
+
+func readConfig() (*Cfg, error) {
+	// TODO handle 'yaml' case
+	dat, err := ioutil.ReadFile(".donner.yml")
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := parseFile(dat)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }
