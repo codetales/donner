@@ -7,7 +7,12 @@ import (
 )
 
 // Current handler implementations
-var availableHandlers = map[string]ExecHandler{"docker_compose_run": {"docker-compose", "run"}, "docker_compose_exec": {"docker-compose", "exec"}, "docker_run": {"docker", "run"}}
+var availableHandlers = map[string]ExecHandler{
+	"docker_compose_run":  {"docker-compose", []string{"run"}},
+	"docker_compose_exec": {"docker-compose", []string{"exec"}},
+	"docker_run":          {"docker", []string{"run", "-it"}},
+	"missing_executable":  {"i_am_not_an_executable_in_path", []string{}},
+}
 
 // ErrInvalidHandler is thrown if any handler that is unknown to the program is specified
 var ErrInvalidHandler = errors.New("configuration specifies unknown handler")
@@ -21,7 +26,7 @@ var ErrNoStrategiesSpecified = errors.New("the specified yaml file doesn't conta
 // ExecHandler is the desired OS exec
 type ExecHandler struct {
 	BaseCommand string
-	Argument    string
+	Args        []string
 }
 
 // Cfg is the uber object in our YAML file

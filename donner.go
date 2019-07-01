@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"syscall"
 
 	"github.com/urfave/cli"
 )
@@ -91,7 +92,7 @@ func execCommand(cfg *Cfg, params []string, strict bool) error {
 	execHandler := availableHandlers[designatedHandler.Handler]
 
 	// construct os call
-	cliArgs := []string{execHandler.Argument}
+	cliArgs := execHandler.Args
 
 	if designatedHandler.Remove {
 		cliArgs = append(cliArgs, "--rm")
@@ -110,14 +111,21 @@ func execCommand(cfg *Cfg, params []string, strict bool) error {
 	}
 
 	cmd := exec.Command(execHandler.BaseCommand, cliArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
 
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return err
+	if err := cmd.Run(); err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			// This block ensures that we return the same exit code in case the command failed
+			waitStatus := exitError.Sys().(syscall.WaitStatus)
+			os.Exit(waitStatus.ExitStatus())
+		} else {
+			// This block handles the case where Donner could not start the command at all (missing, permission, ...)
+			_, _ = os.Stderr.WriteString(fmt.Sprintf("%s\n", err.Error()))
+			os.Exit(1) // TODO: What would be a good exit code to return here?
+		}
 	}
-
-	// TODO structured output?
-	fmt.Println(string(out))
 
 	return nil
 }
