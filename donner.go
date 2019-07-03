@@ -23,23 +23,21 @@ func main() {
 	app.Usage = `Donner is a generic command wrapper. It let's you define strategies to wrap commands in things like 'docker-compose exec' or 'docker container run'.
 	 This is can come in very handy when developing applications in containers. Donner allows defining a wrapping strategy on a per command basis. 
 	 So you don't have to worry which service to use or whether you should use 'docker-compose exec' or 'docker-compose run' when executing a command.`
-	// TODO implement flags
-	app.Flags = []cli.Flag{
-		cli.BoolFlag{Name: "strict,s", Usage: "enable strict mode"},
-		cli.BoolFlag{Name: "fallback,f", Usage: "fallback to local commands"},
-	}
 	app.Commands = []cli.Command{
 		{
-			Name:            "run",
-			Aliases:         []string{"r"},
-			Usage:           "run a command",
-			SkipFlagParsing: true,
+			Name:           "run",
+			Aliases:        []string{"r"},
+			Usage:          "run a command",
+			SkipArgReorder: true,
+			Flags: []cli.Flag{
+				cli.BoolFlag{Name: "strict,s", Usage: "enable strict mode"},
+			},
 			Action: func(c *cli.Context) error {
 				cfg, err := readConfig()
 				if err != nil {
 					return err
 				}
-				return execCommand(cfg, c.Args())
+				return execCommand(cfg, c.Args(), c.Bool("strict"))
 			},
 		},
 		{
@@ -69,20 +67,27 @@ func main() {
 }
 
 // execCommand dispatches the call to the OS
-func execCommand(cfg *Cfg, params []string) error {
+func execCommand(cfg *Cfg, params []string, strict bool) error {
 	if len(params) < 1 {
 		// TODO show usage?
 		return ErrMissingCommand
 	}
 
+	var designatedHandler Strategy
+
 	// check if command specified exists in parsed file
 	command, ok := cfg.Commands[params[0]]
-	if !ok {
-		return ErrUndefinedCommand
+	if ok {
+		designatedHandler = cfg.Strategies[string(command)]
+	} else {
+		if strict {
+			return ErrUndefinedCommand
+		}
+
+		designatedHandler = cfg.GetDefaultStrategy()
 	}
 
 	// extract handler from corresponding strategy
-	designatedHandler := cfg.Strategies[string(command)]
 	execHandler := availableHandlers[designatedHandler.Handler]
 
 	// construct os call

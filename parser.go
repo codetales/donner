@@ -71,6 +71,10 @@ func (s *Strategy) Validate() error {
 	return nil
 }
 
+func (c *Cfg) GetDefaultStrategy() Strategy {
+	return c.Strategies[c.DefaultStrategy]
+}
+
 // Command is an alias for string to properly reflect the yaml definition
 type Command string
 
