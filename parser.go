@@ -35,7 +35,26 @@ type Cfg struct {
 	defaultHandler Handler
 }
 
-func (cfg *Cfg) GetHandlerFor(command string, strictMode bool) (CommandWrapper, error) {
+// Handler is the interface around the individual handler implementations
+type Handler interface {
+	WrapCommand([]string) []string
+}
+
+// GenerateConfig is the main entry point from which we generate the config
+func GenerateConfig(file []byte) (*Cfg, error) {
+	yamlConfig, error := parseYaml(file)
+	if error != nil {
+		return nil, error
+	}
+
+	cfg := &Cfg{}
+	error = cfg.configFromYaml(yamlConfig)
+
+	return cfg, error
+}
+
+// GetHandlerFor will try to find a handler for the specified command
+func (cfg *Cfg) GetHandlerFor(command string, strictMode bool) (Handler, error) {
 	if handler, ok := cfg.commands[command]; ok {
 		return handler, nil
 	} else if strictMode {
@@ -46,15 +65,6 @@ func (cfg *Cfg) GetHandlerFor(command string, strictMode bool) (CommandWrapper, 
 	return nil, ErrUndefinedCommand
 }
 
-type CommandWrapper interface {
-	WrapCommand([]string) []string
-}
-
-type Handler interface {
-	WrapCommand([]string) []string
-	Validate() error
-}
-
 // ListCommands allows for retrieval of all defined commands in a config
 func (cfg *Cfg) ListCommands() []string {
 	list := make([]string, 0, len(cfg.commands))
@@ -62,24 +72,6 @@ func (cfg *Cfg) ListCommands() []string {
 		list = append(list, cmd)
 	}
 	return list
-}
-
-// Validate checks whether the configuration specifies all mandatory properties
-func (cfg *Cfg) validate() error {
-	return nil
-}
-
-// TODO This should be the main entry point in which we generate the config from the yaml
-func generateConfig(file []byte) (*Cfg, error) {
-	yamlConfig, error := parseYaml(file)
-	if error != nil {
-		return nil, error
-	}
-
-	cfg := &Cfg{}
-	error = cfg.configFromYaml(yamlConfig)
-
-	return cfg, error
 }
 
 func (cfg *Cfg) configFromYaml(yaml *yamlCfg) error {
@@ -95,9 +87,7 @@ func (cfg *Cfg) configFromYaml(yaml *yamlCfg) error {
 	cfg.commands = make(map[string]Handler)
 
 	for name, settings := range yaml.Strategies {
-		if handler, err := generateHandler(settings); err == nil {
-			cfg.handler[name] = handler
-		} else {
+		if err := cfg.generateHandler(name, settings); err != nil {
 			return err
 		}
 	}
@@ -121,18 +111,24 @@ func (cfg *Cfg) configFromYaml(yaml *yamlCfg) error {
 	return nil
 }
 
-func generateHandler(settings map[string]interface{}) (Handler, error) {
+func (cfg *Cfg) generateHandler(name string, settings map[string]interface{}) error {
 	var handlerFactory func(map[string]interface{}) (Handler, error)
 	if handlerName, ok := settings["handler"].(string); ok {
 		handlerFactory, ok = handlerFactories[handlerName]
 		if !ok {
-			return nil, ErrInvalidHandler
+			return ErrInvalidHandler
 		}
 	} else {
-		return nil, ErrNoHandlerDefined
+		return ErrNoHandlerDefined
 	}
 
 	delete(settings, "handler")
 
-	return handlerFactory(settings)
+	if handler, err := handlerFactory(settings); err == nil {
+		cfg.handler[name] = handler
+	} else {
+		return err
+	}
+
+	return nil
 }

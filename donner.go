@@ -71,11 +71,11 @@ func execCommand(cfg *Cfg, command []string, strict bool) error {
 		return ErrMissingCommand
 	}
 
-	wrapper, err := cfg.GetHandlerFor(command[0], strict)
+	handler, err := cfg.GetHandlerFor(command[0], strict)
 	if err != nil {
 		return err
 	}
-	wrappedCommand := wrapper.WrapCommand(command)
+	wrappedCommand := handler.WrapCommand(command)
 
 	cmd := exec.Command(wrappedCommand[0], wrappedCommand[1:]...)
 	cmd.Stdout = os.Stdout
@@ -104,7 +104,7 @@ func readConfig() (*Cfg, error) {
 		return nil, err
 	}
 
-	cfg, err := generateConfig(dat)
+	cfg, err := GenerateConfig(dat)
 	if err != nil {
 		return nil, err
 	}
