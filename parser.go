@@ -2,17 +2,7 @@ package main
 
 import (
 	"errors"
-
-	"gopkg.in/yaml.v2"
 )
-
-// Current handler implementations
-var availableHandlers = map[string]ExecHandler{
-	"docker_compose_run":  {"docker-compose", []string{"run"}},
-	"docker_compose_exec": {"docker-compose", []string{"exec"}},
-	"docker_run":          {"docker", []string{"run", "-it"}},
-	"missing_executable":  {"i_am_not_an_executable_in_path", []string{}},
-}
 
 // ErrInvalidHandler is thrown if any handler that is unknown to the program is specified
 var ErrInvalidHandler = errors.New("configuration specifies unknown handler")
@@ -23,84 +13,126 @@ var ErrNoCommandsSpecified = errors.New("the specified yaml file doesn't contain
 // ErrNoStrategiesSpecified is thrown if the yaml file doesn't contain any strategies
 var ErrNoStrategiesSpecified = errors.New("the specified yaml file doesn't contain any strategies")
 
-// ExecHandler is the desired OS exec
-type ExecHandler struct {
-	BaseCommand string
-	Args        []string
+// ErrUndefinedCommand is thrown if a command specified can't be found in the yaml definition
+var ErrUndefinedCommand = errors.New("the command you're trying to run doesn't exist in the yaml definition")
+
+// ErrNoHandlerDefined is thrown when a strategy does not define a handler
+var ErrNoHandlerDefined = errors.New("no handler specified in strategy")
+
+// ErrInvalidStrategy is thrown when a invalid handler is referenced
+var ErrInvalidStrategy = errors.New("invalid sttrategy specified in command")
+
+var handlerFactories = map[string]func(map[string]interface{}) (Handler, error){
+	"docker_run":          InitDockerRunHandler,
+	"docker_compose_run":  InitComposeRunHandler,
+	"docker_compose_exec": InitComposeExecHandler,
 }
 
 // Cfg is the uber object in our YAML file
 type Cfg struct {
-	Strategies      map[string]Strategy
-	DefaultStrategy string `yaml:"default_strategy"`
-	Commands        map[string]Command
+	commands       map[string]Handler
+	handler        map[string]Handler
+	defaultHandler Handler
 }
 
-// Strategy is the definition of a
-type Strategy struct {
-	Handler string
-	Service string
-	Remove  bool
-	Image   string
+func (cfg *Cfg) GetHandlerFor(command string, strictMode bool) (CommandWrapper, error) {
+	if handler, ok := cfg.commands[command]; ok {
+		return handler, nil
+	} else if strictMode {
+		return nil, ErrUndefinedCommand
+	} else if handler = cfg.defaultHandler; handler != nil {
+		return handler, nil
+	}
+	return nil, ErrUndefinedCommand
 }
 
-// Validate checks whether the configuration specifies all mandatory properties
-func (c *Cfg) Validate() error {
-	if len(c.Strategies) == 0 {
-		return ErrNoStrategiesSpecified
-	}
+type CommandWrapper interface {
+	WrapCommand([]string) []string
+}
 
-	if len(c.Commands) == 0 {
-		return ErrNoCommandsSpecified
-	}
-
-	return nil
+type Handler interface {
+	WrapCommand([]string) []string
+	Validate() error
 }
 
 // ListCommands allows for retrieval of all defined commands in a config
-func (c *Cfg) ListCommands() []string {
-	commands := make([]string, 0, len(c.Commands))
-	for cmd := range c.Commands {
-		commands = append(commands, cmd)
+func (cfg *Cfg) ListCommands() []string {
+	list := make([]string, 0, len(cfg.commands))
+	for cmd := range cfg.commands {
+		list = append(list, cmd)
 	}
-	return commands
+	return list
 }
 
-// Validate checks whether a strategy specifies only valid handlers
-func (s *Strategy) Validate() error {
-	_, ok := availableHandlers[s.Handler]
-	if !ok {
-		return ErrInvalidHandler
+// Validate checks whether the configuration specifies all mandatory properties
+func (cfg *Cfg) validate() error {
+	return nil
+}
+
+// TODO This should be the main entry point in which we generate the config from the yaml
+func generateConfig(file []byte) (*Cfg, error) {
+	yamlConfig, error := parseYaml(file)
+	if error != nil {
+		return nil, error
+	}
+
+	cfg := &Cfg{}
+	error = cfg.configFromYaml(yamlConfig)
+
+	return cfg, error
+}
+
+func (cfg *Cfg) configFromYaml(yaml *yamlCfg) error {
+	if len(yaml.Strategies) == 0 {
+		return ErrNoStrategiesSpecified
+	}
+
+	if len(yaml.Commands) == 0 {
+		return ErrNoCommandsSpecified
+	}
+
+	cfg.handler = make(map[string]Handler)
+	cfg.commands = make(map[string]Handler)
+
+	for name, settings := range yaml.Strategies {
+		if handler, err := generateHandler(settings); err == nil {
+			cfg.handler[name] = handler
+		} else {
+			return err
+		}
+	}
+
+	if name := yaml.DefaultStrategy; name != "" {
+		if handler, ok := cfg.handler[name]; ok {
+			cfg.defaultHandler = handler
+		} else {
+			return ErrInvalidHandler
+		}
+	}
+
+	for command, strategy := range yaml.Commands {
+		if handler, ok := cfg.handler[strategy]; ok {
+			cfg.commands[command] = handler
+		} else {
+			return ErrInvalidStrategy
+		}
 	}
 
 	return nil
 }
 
-func (c *Cfg) GetDefaultStrategy() Strategy {
-	return c.Strategies[c.DefaultStrategy]
-}
-
-// Command is an alias for string to properly reflect the yaml definition
-type Command string
-
-// parseFile processes the .donner.yml file
-func parseFile(file []byte) (*Cfg, error) {
-	cfg := Cfg{}
-	err := yaml.Unmarshal([]byte(file), &cfg)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if err := cfg.Validate(); err != nil {
-		return nil, err
-	}
-
-	for _, strat := range cfg.Strategies {
-		if err := strat.Validate(); err != nil {
-			return nil, err
+func generateHandler(settings map[string]interface{}) (Handler, error) {
+	var handlerFactory func(map[string]interface{}) (Handler, error)
+	if handlerName, ok := settings["handler"].(string); ok {
+		handlerFactory, ok = handlerFactories[handlerName]
+		if !ok {
+			return nil, ErrInvalidHandler
 		}
+	} else {
+		return nil, ErrNoHandlerDefined
 	}
 
-	return &cfg, nil
+	delete(settings, "handler")
+
+	return handlerFactory(settings)
 }

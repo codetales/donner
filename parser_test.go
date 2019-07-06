@@ -6,61 +6,50 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var missingCommandsYaml = `
-strategies:
-  exec:
-    handler: docker_compose_exec
-    service: app
-`
+// func TestGenerationErrors {
+// 	tests := map[string]struct {
+// 		input  string
+// 		exp    *Cfg
+// 		expErr error
+// 	}{
+// 		"yaml without commands":   {input: missingCommandsYaml, expErr: ErrNoCommandsSpecified},
+// 		"yaml without strategies": {input: missingStrategiesYml, expErr: ErrNoStrategiesSpecified},
+// 	}
 
-var missingStrategiesYml = `
-commands:
-  rails: exec
-  rspec: exec
-`
-
-var fullYaml = `
-strategies:
-  run:
-    handler: docker_compose_run
-    service: app
-    remove: true
-  run_with_docker:
-    handler: docker_run
-    image: alpine:latest
-
-default_strategy: run
-
-commands:
-  ls: run_with_docker
-  bundle: run
-`
-
-func TestParseFile(t *testing.T) {
-	tests := map[string]struct {
-		input  string
-		exp    *Cfg
-		expErr error
-	}{
-		"yaml without commands":   {input: missingCommandsYaml, expErr: ErrNoCommandsSpecified},
-		"yaml without strategies": {input: missingStrategiesYml, expErr: ErrNoStrategiesSpecified},
-		"full yaml spec":          {input: fullYaml, exp: &Cfg{Strategies: map[string]Strategy{"run": {Handler: "docker_compose_run", Service: "app", Remove: true}, "run_with_docker": {Handler: "docker_run", Image: "alpine:latest"}}, DefaultStrategy: "run", Commands: map[string]Command{"ls": "run_with_docker", "bundle": "run"}}},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			res, err := parseFile([]byte(test.input))
-			if test.expErr != nil {
-				assert.Error(t, err, test.expErr.Error())
-			} else {
-				assert.Equal(t, test.exp, res)
-			}
-		})
-	}
-}
+// 	for name, test := range tests {
+// 		t.Run(name, func(t *testing.T) {
+// 			_, err := parseYaml([]byte(test.input))
+// 			assert.Error(t, err, test.expErr.Error())
+// 		})
+// 	}
+// }
 
 func TestListCommands(t *testing.T) {
-	cfg, err := parseFile([]byte(fullYaml))
+	cfg, err := generateConfig([]byte(fullYaml))
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, cfg.ListCommands(), []string{"ls", "bundle"})
+}
+
+func TestGetHandlerFor(t *testing.T) {
+	var handler CommandWrapper
+	var err error
+
+	cfg, err := generateConfig([]byte(fullYaml))
+	assert.NoError(t, err)
+
+	// Without strict mode for a known command
+	handler, err = cfg.GetHandlerFor("ls", false)
+	assert.NoError(t, err)
+	assert.NotNil(t, handler)
+
+	// With strict mode for an unkown command
+	handler, err = cfg.GetHandlerFor("some-cmd", true)
+	assert.Error(t, err, ErrUndefinedCommand)
+	assert.Nil(t, handler)
+
+	// Without strict mode for an unkown command
+	handler, err = cfg.GetHandlerFor("some-cmd", false)
+	assert.NoError(t, err)
+	assert.NotNil(t, handler)
+
 }

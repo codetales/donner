@@ -12,9 +12,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-// ErrUndefinedCommand is thrown if a command specified can't be found in the yaml definition
-var ErrUndefinedCommand = errors.New("the command you're trying to run doesn't exist in the yaml definition")
-
 // ErrMissingCommand is thrown if no handler for execution is provided
 var ErrMissingCommand = errors.New("no command for execution specified")
 
@@ -68,49 +65,19 @@ func main() {
 }
 
 // execCommand dispatches the call to the OS
-func execCommand(cfg *Cfg, params []string, strict bool) error {
-	if len(params) < 1 {
+func execCommand(cfg *Cfg, command []string, strict bool) error {
+	if len(command) < 1 {
 		// TODO show usage?
 		return ErrMissingCommand
 	}
 
-	var designatedHandler Strategy
-
-	// check if command specified exists in parsed file
-	command, ok := cfg.Commands[params[0]]
-	if ok {
-		designatedHandler = cfg.Strategies[string(command)]
-	} else {
-		if strict {
-			return ErrUndefinedCommand
-		}
-
-		designatedHandler = cfg.GetDefaultStrategy()
+	wrapper, err := cfg.GetHandlerFor(command[0], strict)
+	if err != nil {
+		return err
 	}
+	wrappedCommand := wrapper.WrapCommand(command)
 
-	// extract handler from corresponding strategy
-	execHandler := availableHandlers[designatedHandler.Handler]
-
-	// construct os call
-	cliArgs := execHandler.Args
-
-	if designatedHandler.Remove {
-		cliArgs = append(cliArgs, "--rm")
-	}
-
-	if designatedHandler.Service != "" {
-		cliArgs = append(cliArgs, designatedHandler.Service)
-	}
-
-	if designatedHandler.Image != "" {
-		cliArgs = append(cliArgs, designatedHandler.Image)
-	}
-
-	for _, p := range params {
-		cliArgs = append(cliArgs, p)
-	}
-
-	cmd := exec.Command(execHandler.BaseCommand, cliArgs...)
+	cmd := exec.Command(wrappedCommand[0], wrappedCommand[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
@@ -137,7 +104,7 @@ func readConfig() (*Cfg, error) {
 		return nil, err
 	}
 
-	cfg, err := parseFile(dat)
+	cfg, err := generateConfig(dat)
 	if err != nil {
 		return nil, err
 	}
