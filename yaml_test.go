@@ -23,8 +23,27 @@ commands:
   bundle: run
 `
 
+var yamlWithExtraAttributes = `
+strategies:
+  run:
+    handler: docker_compose_run
+    service: app
+    remove: true
+  run_with_docker:
+    handler: docker_run
+    image: alpine:latest
+
+default_strategy: run
+
+commands:
+  ls: run_with_docker
+  bundle: run
+
+something-else:
+  foo: bar
+`
+
 func TestParseYaml(t *testing.T) {
-	yaml, err := parseYaml([]byte(fullYaml))
 	expectedResult := &yamlCfg{
 		Strategies: map[string]map[string]interface{}{
 			"run": {
@@ -43,8 +62,12 @@ func TestParseYaml(t *testing.T) {
 			"bundle": "run",
 		},
 	}
+
+	yaml, err := parseYaml([]byte(fullYaml))
+	assert.NoError(t, err)
+	assert.Equal(t, yaml, expectedResult)
+
+	yaml, err = parseYaml([]byte(yamlWithExtraAttributes))
 	assert.NoError(t, err)
 	assert.Equal(t, yaml, expectedResult)
 }
-
-// TODO: Test parsing yaml with additional fields
