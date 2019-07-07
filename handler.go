@@ -8,6 +8,12 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// Handler is the interface around the individual handler implementations
+type Handler interface {
+	WrapCommand([]string) []string
+	validate() error
+}
+
 // DockerRunHandler wraps a command with `docker container run`
 type DockerRunHandler struct {
 	Remove bool
@@ -39,15 +45,12 @@ func (handler *DockerRunHandler) validate() error {
 // InitDockerRunHandler generates a DockerRunHandler
 func InitDockerRunHandler(settings map[string]interface{}) (Handler, error) {
 	var handler *DockerRunHandler
-	if err := mapstructure.Decode(settings, &handler); err != nil {
+	var parsingMetadata *mapstructure.Metadata = &mapstructure.Metadata{}
+
+	if err := mapstructure.DecodeMetadata(settings, &handler, parsingMetadata); err != nil {
 		return handler, err
 	}
-
-	if err := handler.validate(); err != nil {
-		return handler, err
-	}
-
-	return handler, nil
+	return handler, validateHandler(handler, parsingMetadata)
 }
 
 // ComposeRunHandler wraps a command with `docker-compose exec`
@@ -86,23 +89,7 @@ func InitComposeRunHandler(settings map[string]interface{}) (Handler, error) {
 	if err := mapstructure.DecodeMetadata(settings, &handler, parsingMetadata); err != nil {
 		return handler, err
 	}
-
-	if err := handler.validate(); err != nil {
-		return handler, err
-	}
-
-	if err := ensureNoAdditionalFields(parsingMetadata); err != nil {
-		return handler, err
-	}
-
-	return handler, nil
-}
-
-func ensureNoAdditionalFields(m *mapstructure.Metadata) error {
-	if len(m.Unused) > 0 {
-		return fmt.Errorf("additonal field(s) detected: %v", strings.Join(m.Unused, ", "))
-	}
-	return nil
+	return handler, validateHandler(handler, parsingMetadata)
 }
 
 // ComposeExecHandler wraps a command with `docker-compose run`
@@ -131,13 +118,23 @@ func (handler *ComposeExecHandler) validate() error {
 // InitComposeExecHandler generates a ComposeExecHandler
 func InitComposeExecHandler(settings map[string]interface{}) (Handler, error) {
 	var handler *ComposeExecHandler
-	if err := mapstructure.Decode(settings, &handler); err != nil {
+
+	var parsingMetadata *mapstructure.Metadata = &mapstructure.Metadata{}
+
+	if err := mapstructure.DecodeMetadata(settings, &handler, parsingMetadata); err != nil {
 		return handler, err
 	}
+	return handler, validateHandler(handler, parsingMetadata)
+}
 
+func validateHandler(handler Handler, metadata *mapstructure.Metadata) error {
 	if err := handler.validate(); err != nil {
-		return handler, err
+		return err
 	}
 
-	return handler, nil
+	if len(metadata.Unused) > 0 {
+		return fmt.Errorf("additonal field(s) detected: %v", strings.Join(metadata.Unused, ", "))
+	}
+
+	return nil
 }

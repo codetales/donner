@@ -36,11 +36,6 @@ type Cfg struct {
 	defaultHandler Handler
 }
 
-// Handler is the interface around the individual handler implementations
-type Handler interface {
-	WrapCommand([]string) []string
-}
-
 // GenerateConfig is the main entry point from which we generate the config
 func GenerateConfig(file []byte) (*Cfg, error) {
 	yamlConfig, error := parseYaml(file)
