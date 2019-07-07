@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 )
 
 // ErrInvalidHandler is thrown if any handler that is unknown to the program is specified
@@ -47,7 +48,11 @@ func GenerateConfig(file []byte) (*Cfg, error) {
 		return nil, error
 	}
 
-	cfg := &Cfg{}
+	cfg := &Cfg{
+		handler:  map[string]Handler{},
+		commands: map[string]Handler{},
+	}
+
 	error = cfg.configFromYaml(yamlConfig)
 
 	return cfg, error
@@ -82,9 +87,6 @@ func (cfg *Cfg) configFromYaml(yaml *yamlCfg) error {
 	if len(yaml.Commands) == 0 {
 		return ErrNoCommandsSpecified
 	}
-
-	cfg.handler = make(map[string]Handler)
-	cfg.commands = make(map[string]Handler)
 
 	for name, settings := range yaml.Strategies {
 		if err := cfg.generateHandler(name, settings); err != nil {
@@ -127,7 +129,7 @@ func (cfg *Cfg) generateHandler(name string, settings map[string]interface{}) er
 	if handler, err := handlerFactory(settings); err == nil {
 		cfg.handler[name] = handler
 	} else {
-		return err
+		return fmt.Errorf("Error in strategy %v: %v", name, err.Error())
 	}
 
 	return nil

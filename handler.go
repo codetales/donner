@@ -1,6 +1,12 @@
 package main
 
-import "github.com/mitchellh/mapstructure"
+import (
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/mitchellh/mapstructure"
+)
 
 // DockerRunHandler wraps a command with `docker container run`
 type DockerRunHandler struct {
@@ -24,7 +30,9 @@ func (handler *DockerRunHandler) WrapCommand(command []string) []string {
 }
 
 func (handler *DockerRunHandler) validate() error {
-	// TODO: Perform some actual validations
+	if handler.Image == "" {
+		return errors.New("field image required but not set")
+	}
 	return nil
 }
 
@@ -64,14 +72,18 @@ func (handler *ComposeRunHandler) WrapCommand(command []string) []string {
 }
 
 func (handler *ComposeRunHandler) validate() error {
-	// TODO: Perform some actual validations
+	if handler.Service == "" {
+		return errors.New("field service required but not set")
+	}
 	return nil
 }
 
 // InitComposeRunHandler generates a ComposeRunHandler
 func InitComposeRunHandler(settings map[string]interface{}) (Handler, error) {
 	var handler *ComposeRunHandler
-	if err := mapstructure.Decode(settings, &handler); err != nil {
+	var parsingMetadata *mapstructure.Metadata = &mapstructure.Metadata{}
+
+	if err := mapstructure.DecodeMetadata(settings, &handler, parsingMetadata); err != nil {
 		return handler, err
 	}
 
@@ -79,7 +91,18 @@ func InitComposeRunHandler(settings map[string]interface{}) (Handler, error) {
 		return handler, err
 	}
 
+	if err := ensureNoAdditionalFields(parsingMetadata); err != nil {
+		return handler, err
+	}
+
 	return handler, nil
+}
+
+func ensureNoAdditionalFields(m *mapstructure.Metadata) error {
+	if len(m.Unused) > 0 {
+		return fmt.Errorf("additonal field(s) detected: %v", strings.Join(m.Unused, ", "))
+	}
+	return nil
 }
 
 // ComposeExecHandler wraps a command with `docker-compose run`
@@ -99,7 +122,9 @@ func (handler *ComposeExecHandler) WrapCommand(command []string) []string {
 }
 
 func (handler *ComposeExecHandler) validate() error {
-	// TODO: Perform some actual validations
+	if handler.Service == "" {
+		return errors.New("field service required but not set")
+	}
 	return nil
 }
 
