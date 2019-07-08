@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"path"
 )
 
 // ErrInvalidHandler is thrown if any handler that is unknown to the program is specified
@@ -55,7 +56,8 @@ func GenerateConfig(file []byte) (*Cfg, error) {
 
 // GetHandlerFor will try to find a handler for the specified command
 func (cfg *Cfg) GetHandlerFor(command string, strictMode bool) (Handler, error) {
-	if handler, ok := cfg.commands[command]; ok {
+	executable := path.Base(command)
+	if handler, ok := cfg.commands[executable]; ok {
 		return handler, nil
 	} else if strictMode {
 		return nil, ErrUndefinedCommand

@@ -61,4 +61,9 @@ func TestGetHandlerFor(t *testing.T) {
 	handler, err = cfg.GetHandlerFor("some-cmd", false)
 	assert.NoError(t, err)
 	assert.NotNil(t, handler)
+
+	// When specifying a path to the command
+	handler, err = cfg.GetHandlerFor("/bin/ls", true)
+	assert.NoError(t, err)
+	assert.NotNil(t, handler)
 }
