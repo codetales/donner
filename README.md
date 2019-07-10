@@ -1,7 +1,7 @@
 # Donner
 [![Go Report Card](https://goreportcard.com/badge/github.com/codetales/donner)](https://goreportcard.com/report/github.com/codetales/donner)
 
-:boom: Donner is a generic command wrapper. It let's you define strategies to wrap commands in things like `docker-compose exec` or `docker container run`.  
+:boom: Donner is a generic command wrapper. It let's you define strategies to wrap commands in things like `docker-compose exec` or `docker container run`.
 This is can come in very handy when developing applications in containers.  
 Donner allows defining a wrapping strategy on a per command basis. So you don't have to worry which service to use or whether you should use `docker-compose exec` or `docker-compose run` when executing a command.
 
@@ -11,12 +11,12 @@ Example config for a ruby project
 ```yaml
 strategies:
   run:
-    handler: docker_compose_run # handler for `docker-compose run` provided by donner or defined in another yaml?
-    service: app # inputs for the handler
+    handler: docker_compose_run
+    service: app
     remove: true
   exec:
-    handler: docker_compose_exec # other handler for `docker-compose exec`
-    service: app # inputs for the handler
+    handler: docker_compose_exec
+    service: app
   exec_postgres:
     handler: docker_compose_exec
     service: pg
@@ -34,7 +34,7 @@ commands:
   ruby: run
   bundle: run
   irb: run
-  rake:               # over ride strategy definition
+  rake:                     # override strategy definition
     strategy: run
     remove: false
   psql: exec_postgres
@@ -63,7 +63,7 @@ alias ruby='donner run ruby'
 alias bundle='donner run bundle'
 alias irb='donner run irb'
 
-# copy and paste the output into your terminal or run 
+# copy and paste the output into your terminal or run
 #   eval $(donner aliases)
 ```
 
@@ -90,3 +90,10 @@ alias irb='donner run --fallback --strict irb'
 # copy and paste the output into your terminal or run
 #   eval $(donner aliases --fallback --strict)
 ```
+
+## TODO
+* Setup CI builds
+* Ensure useful error messages and test failure cases
+* Add missing flags to the handlers (volumes, ...)
+* Add documentation
+* Setup bash/zsh completion
