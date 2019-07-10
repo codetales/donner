@@ -34,7 +34,7 @@ type DockerRunHandler struct {
 
 // BuildCommand performs the actual wrapping of the command
 func (h *DockerRunHandler) BuildCommand(command []string) []string {
-	wrappedCommand := []string{"docker", "run"}
+	wrappedCommand := []string{"docker", "run", "-it"}
 
 	if h.Remove {
 		wrappedCommand = append(wrappedCommand, "--rm")
