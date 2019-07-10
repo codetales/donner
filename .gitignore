@@ -6,6 +6,7 @@ Thumbs.db
 
 # config files
 .donner.yml
+.donner.yaml
 
 # bin
 donner

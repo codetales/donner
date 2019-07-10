@@ -10,7 +10,7 @@ import (
 
 // Handler is the interface around the individual handler implementations
 type Handler interface {
-	WrapCommand([]string) []string
+	BuildCommand([]string) []string
 	validate() error
 }
 
@@ -20,23 +20,23 @@ type DockerRunHandler struct {
 	Image  string
 }
 
-// WrapCommand performs the actual wrapping of the command
-func (handler *DockerRunHandler) WrapCommand(command []string) []string {
-	wrappedCommand := []string{"docker", "container", "run"}
+// BuildCommand performs the actual wrapping of the command
+func (h *DockerRunHandler) BuildCommand(command []string) []string {
+	wrappedCommand := []string{"docker", "run"}
 
-	if handler.Remove {
+	if h.Remove {
 		wrappedCommand = append(wrappedCommand, "--rm")
 	}
 
-	if handler.Image != "" {
-		wrappedCommand = append(wrappedCommand, handler.Image)
+	if h.Image != "" {
+		wrappedCommand = append(wrappedCommand, h.Image)
 	}
 
 	return append(wrappedCommand, command...)
 }
 
-func (handler *DockerRunHandler) validate() error {
-	if handler.Image == "" {
+func (h *DockerRunHandler) validate() error {
+	if h.Image == "" {
 		return errors.New("field image required but not set")
 	}
 	return nil
@@ -44,10 +44,10 @@ func (handler *DockerRunHandler) validate() error {
 
 // InitDockerRunHandler generates a DockerRunHandler
 func InitDockerRunHandler(settings map[string]interface{}) (Handler, error) {
-	var handler *DockerRunHandler
-	var parsingMetadata *mapstructure.Metadata = &mapstructure.Metadata{}
+	handler := &DockerRunHandler{}
+	parsingMetadata := &mapstructure.Metadata{}
 
-	if err := mapstructure.DecodeMetadata(settings, &handler, parsingMetadata); err != nil {
+	if err := mapstructure.DecodeMetadata(settings, handler, parsingMetadata); err != nil {
 		return handler, err
 	}
 	return handler, validateHandler(handler, parsingMetadata)
@@ -59,23 +59,23 @@ type ComposeRunHandler struct {
 	Service string
 }
 
-// WrapCommand performs the actual wrapping of the command
-func (handler *ComposeRunHandler) WrapCommand(command []string) []string {
+// BuildCommand performs the actual wrapping of the command
+func (h *ComposeRunHandler) BuildCommand(command []string) []string {
 	wrappedCommand := []string{"docker-compose", "run"}
 
-	if handler.Remove {
+	if h.Remove {
 		wrappedCommand = append(wrappedCommand, "--rm")
 	}
 
-	if handler.Service != "" {
-		wrappedCommand = append(wrappedCommand, handler.Service)
+	if h.Service != "" {
+		wrappedCommand = append(wrappedCommand, h.Service)
 	}
 
 	return append(wrappedCommand, command...)
 }
 
-func (handler *ComposeRunHandler) validate() error {
-	if handler.Service == "" {
+func (h *ComposeRunHandler) validate() error {
+	if h.Service == "" {
 		return errors.New("field service required but not set")
 	}
 	return nil
@@ -83,10 +83,10 @@ func (handler *ComposeRunHandler) validate() error {
 
 // InitComposeRunHandler generates a ComposeRunHandler
 func InitComposeRunHandler(settings map[string]interface{}) (Handler, error) {
-	var handler *ComposeRunHandler
-	var parsingMetadata *mapstructure.Metadata = &mapstructure.Metadata{}
+	handler := &ComposeRunHandler{}
+	parsingMetadata := &mapstructure.Metadata{}
 
-	if err := mapstructure.DecodeMetadata(settings, &handler, parsingMetadata); err != nil {
+	if err := mapstructure.DecodeMetadata(settings, handler, parsingMetadata); err != nil {
 		return handler, err
 	}
 	return handler, validateHandler(handler, parsingMetadata)
@@ -97,19 +97,19 @@ type ComposeExecHandler struct {
 	Service string
 }
 
-// WrapCommand performs the actual wrapping of the command
-func (handler *ComposeExecHandler) WrapCommand(command []string) []string {
-	wrappedCommand := []string{"docker-compose", "run"}
+// BuildCommand performs the actual wrapping of the command
+func (h *ComposeExecHandler) BuildCommand(command []string) []string {
+	wrappedCommand := []string{"docker-compose", "exec"}
 
-	if handler.Service != "" {
-		wrappedCommand = append(wrappedCommand, handler.Service)
+	if h.Service != "" {
+		wrappedCommand = append(wrappedCommand, h.Service)
 	}
 
 	return append(wrappedCommand, command...)
 }
 
-func (handler *ComposeExecHandler) validate() error {
-	if handler.Service == "" {
+func (h *ComposeExecHandler) validate() error {
+	if h.Service == "" {
 		return errors.New("field service required but not set")
 	}
 	return nil
@@ -117,11 +117,10 @@ func (handler *ComposeExecHandler) validate() error {
 
 // InitComposeExecHandler generates a ComposeExecHandler
 func InitComposeExecHandler(settings map[string]interface{}) (Handler, error) {
-	var handler *ComposeExecHandler
+	handler := &ComposeExecHandler{}
+	parsingMetadata := &mapstructure.Metadata{}
 
-	var parsingMetadata *mapstructure.Metadata = &mapstructure.Metadata{}
-
-	if err := mapstructure.DecodeMetadata(settings, &handler, parsingMetadata); err != nil {
+	if err := mapstructure.DecodeMetadata(settings, handler, parsingMetadata); err != nil {
 		return handler, err
 	}
 	return handler, validateHandler(handler, parsingMetadata)

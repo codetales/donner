@@ -18,6 +18,7 @@ var ErrMissingCommand = errors.New("no command for execution specified")
 func main() {
 	app := cli.NewApp()
 	app.Name = "Donner"
+	app.Version = "0.3.0"
 	app.Usage = `Donner is a generic command wrapper. It let's you define strategies to wrap commands in things like 'docker-compose exec' or 'docker container run'.
 	 This is can come in very handy when developing applications in containers. Donner allows defining a wrapping strategy on a per command basis. 
 	 So you don't have to worry which service to use or whether you should use 'docker-compose exec' or 'docker-compose run' when executing a command.`
@@ -65,17 +66,17 @@ func main() {
 }
 
 // execCommand dispatches the call to the OS
-func execCommand(cfg *Cfg, command []string, strict bool) error {
-	if len(command) < 1 {
+func execCommand(cfg *Cfg, cliArgs []string, strict bool) error {
+	if len(cliArgs) < 1 {
 		// TODO show usage?
 		return ErrMissingCommand
 	}
 
-	handler, err := cfg.GetHandlerFor(command[0], strict)
+	execHandler, err := cfg.GetHandlerFor(cliArgs[0], strict)
 	if err != nil {
 		return err
 	}
-	wrappedCommand := handler.WrapCommand(command)
+	wrappedCommand := execHandler.BuildCommand(cliArgs)
 
 	cmd := exec.Command(wrappedCommand[0], wrappedCommand[1:]...)
 	cmd.Stdout = os.Stdout

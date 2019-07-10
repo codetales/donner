@@ -39,9 +39,9 @@ type Cfg struct {
 
 // GenerateConfig is the main entry point from which we generate the config
 func GenerateConfig(file []byte) (*Cfg, error) {
-	yamlConfig, error := parseYaml(file)
-	if error != nil {
-		return nil, error
+	yamlConfig, err := parseYaml(file)
+	if err != nil {
+		return nil, err
 	}
 
 	cfg := &Cfg{
@@ -49,9 +49,9 @@ func GenerateConfig(file []byte) (*Cfg, error) {
 		commands: map[string]Handler{},
 	}
 
-	error = cfg.configFromYaml(yamlConfig)
+	err = cfg.configFromYaml(yamlConfig)
 
-	return cfg, error
+	return cfg, err
 }
 
 // GetHandlerFor will try to find a handler for the specified command
@@ -126,7 +126,7 @@ func (cfg *Cfg) generateHandler(name string, settings map[string]interface{}) er
 	if handler, err := handlerFactory(settings); err == nil {
 		cfg.handler[name] = handler
 	} else {
-		return fmt.Errorf("Error in strategy %v: %v", name, err.Error())
+		return fmt.Errorf("error in strategy %v: %v", name, err.Error())
 	}
 
 	return nil
