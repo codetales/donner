@@ -14,6 +14,18 @@ type Handler interface {
 	validate() error
 }
 
+// FallbackHandler does not wrap the command and will just execute it as is
+type FallbackHandler struct{}
+
+// BuildCommand simply returns the passed in command
+func (h *FallbackHandler) BuildCommand(command []string) []string {
+	return command
+}
+
+func (h *FallbackHandler) validate() error {
+	return nil
+}
+
 // DockerRunHandler wraps a command with `docker container run`
 type DockerRunHandler struct {
 	Remove bool

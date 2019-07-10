@@ -7,7 +7,8 @@ import (
 )
 
 func TestListCommands(t *testing.T) {
-	cfg, err := GenerateConfig([]byte(fullYaml))
+	cfg := GenerateConfig()
+	err := cfg.Load([]byte(fullYaml))
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, cfg.ListCommands(), []string{"ls", "bundle"})
 }
@@ -19,9 +20,10 @@ func TestGenerateHandler(t *testing.T) {
 		settings    map[string]interface{}
 		expErr      string
 	}{
-		"valid handler":     {&Cfg{handler: map[string]Handler{}}, "test", map[string]interface{}{"handler": "docker_compose_run", "service": "app",}, ""},
+		"valid handler":     {&Cfg{handler: map[string]Handler{}}, "test", map[string]interface{}{"handler": "docker_compose_run", "service": "app"}, ""},
 		"invalid handler":   {&Cfg{}, "test", map[string]interface{}{"handler": "docker_compose_run"}, "error in strategy test: field service required but not set"},
 		"additional fields": {&Cfg{}, "foo", map[string]interface{}{"handler": "docker_compose_run", "service": "test", "other": "field"}, "error in strategy foo: additonal field(s) detected: other"},
+		"invalid type":      {&Cfg{}, "foo", map[string]interface{}{"handler": "docker_compose_run", "service": true, "remove": "foo"}, "error in strategy foo: 2 error(s) decoding:\n\n* 'Remove' expected type 'bool', got unconvertible type 'string'\n* 'Service' expected type 'string', got unconvertible type 'bool'"},
 	}
 
 	for name, test := range tests {
@@ -37,24 +39,27 @@ func TestGenerateHandler(t *testing.T) {
 	}
 }
 
-func Test_GetHandlerFor(t *testing.T) {
-	cfg, err := GenerateConfig([]byte(fullYaml))
+func TestGetHandlerFor(t *testing.T) {
+	cfg := GenerateConfig()
+	err := cfg.Load([]byte(fullYaml))
 	assert.NoError(t, err)
 
 	tests := map[string]struct {
-		command    string
-		strictMode bool
-		expErr     error
+		command      string
+		strictMode   bool
+		fallbackMode bool
+		expErr       error
 	}{
-		"known cmd":                    {"ls", false, nil},
-		"unknown cmd":                  {"some-cmd", false, nil},
-		"unknown cmd, strict":          {"some-cmd", true, ErrUndefinedCommand},
-		"custom cmd with path, strict": {"/bin/ls", true, nil},
+		"known cmd":                     {command: "ls"},
+		"unknown cmd":                   {command: "some-cmd"},
+		"known cmd with path, strict":   {command: "ls", strictMode: true, fallbackMode: true},
+		"unknown cmd, strict,":          {command: "some-cmd", strictMode: true, expErr: ErrUndefinedCommand},
+		"unknown cmd, strict, fallback": {command: "some-cmd", strictMode: true, expErr: ErrUndefinedCommand},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			handler, err := cfg.GetHandlerFor(test.command, test.strictMode)
+			handler, err := cfg.GetHandlerFor(test.command, test.strictMode, test.fallbackMode)
 			if test.expErr != nil {
 				assert.EqualError(t, err, test.expErr.Error())
 			} else {

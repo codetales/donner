@@ -12,7 +12,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-// ErrMissingCommand is thrown if no handler for execution is provided
+// ErrMissingCommand is thrown if no command to execute is provided on the command line
 var ErrMissingCommand = errors.New("no command for execution specified")
 
 func main() {
@@ -30,13 +30,14 @@ func main() {
 			SkipArgReorder: true,
 			Flags: []cli.Flag{
 				cli.BoolFlag{Name: "strict,s", Usage: "enable strict mode"},
+				cli.BoolFlag{Name: "fallback,f", Usage: "enable fallback mode"},
 			},
 			Action: func(c *cli.Context) error {
-				cfg, err := readConfig()
+				cfg, err := makeConfig(c.Bool("fallback"))
 				if err != nil {
 					return err
 				}
-				return execCommand(cfg, c.Args(), c.Bool("strict"))
+				return execCommand(cfg, c.Args(), c.Bool("strict"), c.Bool("fallback"))
 			},
 		},
 		{
@@ -48,7 +49,7 @@ func main() {
 				cli.BoolFlag{Name: "fallback,f", Usage: "fallback to local commands"},
 			},
 			Action: func(c *cli.Context) error {
-				cfg, err := readConfig()
+				cfg, err := makeConfig(false)
 				if err != nil {
 					return err
 				}
@@ -66,13 +67,13 @@ func main() {
 }
 
 // execCommand dispatches the call to the OS
-func execCommand(cfg *Cfg, cliArgs []string, strict bool) error {
+func execCommand(cfg *Cfg, cliArgs []string, strict, fallback bool) error {
 	if len(cliArgs) < 1 {
 		// TODO show usage?
 		return ErrMissingCommand
 	}
 
-	execHandler, err := cfg.GetHandlerFor(cliArgs[0], strict)
+	execHandler, err := cfg.GetHandlerFor(cliArgs[0], strict, fallback)
 	if err != nil {
 		return err
 	}
@@ -98,17 +99,25 @@ func execCommand(cfg *Cfg, cliArgs []string, strict bool) error {
 	return nil
 }
 
-func readConfig() (*Cfg, error) {
-	// TODO handle 'yaml' case
-	dat, err := ioutil.ReadFile(".donner.yml")
-	if err != nil {
+func makeConfig(allowNoConfig bool) (*Cfg, error) {
+	cfg := GenerateConfig()
+
+	dat, err := readConfig()
+
+	if allowNoConfig && os.IsNotExist(err) {
+		return cfg, nil
+	} else if err != nil {
 		return nil, err
 	}
+	err = cfg.Load(dat)
+	return cfg, err
+}
 
-	cfg, err := GenerateConfig(dat)
-	if err != nil {
-		return nil, err
+func readConfig() ([]byte, error) {
+	_, err := os.Stat(".donner.yml") // TODO handle 'yaml' case
+	if err == nil {
+		dat, err := ioutil.ReadFile(".donner.yml")
+		return dat, err
 	}
-
-	return cfg, nil
+	return nil, err
 }

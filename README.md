@@ -71,8 +71,8 @@ alias irb='donner run irb'
 To make aliases work nicely system wide, Donner supports a `--fallback` and `--strict` flag.
 
 * When executing `donner run --strict some-command` and the provided command is not defined under `commands` or `aliases`, Donner will fail executing the command.
-* When executing `donner run --falback` no `.donner.yml` is found in the current directory, Donner executes the command as is in the current shell.
-* When executing `donner run --strict --falback` and the provided command is not defined under `commands` or `aliases`, Donner executes the command as is in the current shell.
+* When executing `donner run --fallback` with no `.donner.yml` in the current directory, Donner executes the command as is.
+* When executing `donner run --strict --fallback` and the provided command is not defined, Donner executes the command as is.
 
 
 This is also supported with aliases:

@@ -22,7 +22,10 @@ var ErrUndefinedCommand = errors.New("the command you're trying to run doesn't e
 var ErrNoHandlerDefined = errors.New("no handler specified in strategy")
 
 // ErrInvalidStrategy is thrown when a invalid handler is referenced
-var ErrInvalidStrategy = errors.New("invalid sttrategy specified in command")
+var ErrInvalidStrategy = errors.New("invalid strategy specified in command")
+
+// ErrPathSpecifiedInCommand is thrown when a command is specified using a relative or absolute path rather then the executable name
+var ErrPathSpecifiedInCommand = errors.New("Path instead name of executable defined")
 
 var handlerFactories = map[string]func(map[string]interface{}) (Handler, error){
 	"docker_run":          InitDockerRunHandler,
@@ -32,35 +35,40 @@ var handlerFactories = map[string]func(map[string]interface{}) (Handler, error){
 
 // Cfg is the uber object in our YAML file
 type Cfg struct {
-	commands       map[string]Handler
-	handler        map[string]Handler
-	defaultHandler Handler
+	commands        map[string]Handler
+	handler         map[string]Handler
+	defaultHandler  Handler
+	fallbackHandler Handler
 }
 
 // GenerateConfig is the main entry point from which we generate the config
-func GenerateConfig(file []byte) (*Cfg, error) {
-	yamlConfig, err := parseYaml(file)
+func GenerateConfig() *Cfg {
+	return &Cfg{
+		handler:         map[string]Handler{},
+		commands:        map[string]Handler{},
+		fallbackHandler: &FallbackHandler{},
+	}
+}
+
+// Load will load the config from the provided file
+func (cfg *Cfg) Load(yaml []byte) error {
+	yamlConfig, err := parseYaml(yaml)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	cfg := &Cfg{
-		handler:  map[string]Handler{},
-		commands: map[string]Handler{},
-	}
-
-	err = cfg.configFromYaml(yamlConfig)
-
-	return cfg, err
+	return cfg.configFromYaml(yamlConfig)
 }
 
 // GetHandlerFor will try to find a handler for the specified command
-func (cfg *Cfg) GetHandlerFor(command string, strictMode bool) (Handler, error) {
+func (cfg *Cfg) GetHandlerFor(command string, strictMode, fallbackMode bool) (Handler, error) {
 	executable := path.Base(command)
 	if handler, ok := cfg.commands[executable]; ok {
 		return handler, nil
-	} else if strictMode {
+	} else if strictMode && !fallbackMode {
 		return nil, ErrUndefinedCommand
+	} else if fallbackMode {
+		return cfg.fallbackHandler, nil
 	} else if handler = cfg.defaultHandler; handler != nil {
 		return handler, nil
 	}
@@ -100,6 +108,9 @@ func (cfg *Cfg) configFromYaml(yaml *yamlCfg) error {
 	}
 
 	for command, strategy := range yaml.Commands {
+		if path.Base(command) != command {
+			return ErrPathSpecifiedInCommand
+		}
 		if handler, ok := cfg.handler[strategy]; ok {
 			cfg.commands[command] = handler
 		} else {
