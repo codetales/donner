@@ -2,11 +2,11 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"syscall"
 
 	"github.com/urfave/cli"
@@ -79,21 +79,18 @@ func execCommand(cfg *Cfg, cliArgs []string, strict, fallback bool) error {
 	}
 	wrappedCommand := execHandler.BuildCommand(cliArgs)
 
-	cmd := exec.Command(wrappedCommand[0], wrappedCommand[1:]...)
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
+	binary, err := exec.LookPath(wrappedCommand[0])
+	if err != nil {
+		return err
+	}
+	args := []string{path.Base(wrappedCommand[0])}
+	args = append(args, wrappedCommand[1:]...)
 
-	if err := cmd.Run(); err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			// This block ensures that we return the same exit code in case the command failed
-			waitStatus := exitError.Sys().(syscall.WaitStatus)
-			os.Exit(waitStatus.ExitStatus())
-		} else {
-			// This block handles the case where Donner could not start the command at all (missing, permission, ...)
-			_, _ = os.Stderr.WriteString(fmt.Sprintf("%s\n", err.Error()))
-			os.Exit(1) // TODO: What would be a good exit code to return here?
-		}
+	env := os.Environ()
+
+	err = syscall.Exec(binary, args, env)
+	if err != nil {
+		return err
 	}
 
 	return nil
