@@ -1,0 +1,15 @@
+language: go
+go: '1.12'
+env:
+  - GO111MODULE=on
+
+script: go test -v ./... && go build
+
+deploy:
+  - provider: script
+    skip_cleanup: true
+    script: curl -sL https://git.io/goreleaser | bash
+    on:
+      tags: true
+notifications:
+  email: false

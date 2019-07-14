@@ -5,6 +5,10 @@
 This is can come in very handy when developing applications in containers.  
 Donner allows defining a wrapping strategy on a per command basis. So you don't have to worry which service to use or whether you should use `docker-compose exec` or `docker-compose run` when executing a command.
 
+## Installation
+
+`brew install codetales/tap/donner` or download latest binary from the [releases](https://github.com/codetales/donner/releases) page.
+
 ## Examples
 
 Example config for a ruby project
