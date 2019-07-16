@@ -25,7 +25,7 @@ func printAliases(cfg *Cfg, strictMode, fallbackMode bool) {
 
 	fmt.Println()
 	for i, c := range commands {
-		fmt.Printf("alias %s='donner run %s'\n", c, outputs[i])
+		fmt.Printf("alias %s='donner run %s';\n", c, outputs[i])
 	}
 
 	aliasCommand := strings.Join(append([]string{"donner", "aliases"}, flags...), " ")
