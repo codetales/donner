@@ -53,7 +53,7 @@ func main() {
 				if err != nil {
 					return err
 				}
-				printAliases(cfg, c.Bool("strict"), c.Bool("fallback"))
+				printAliases(os.Stdout, cfg, c.Bool("strict"), c.Bool("fallback"))
 
 				return nil
 			},

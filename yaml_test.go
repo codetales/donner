@@ -15,6 +15,9 @@ strategies:
   run_with_docker:
     handler: docker_run
     image: alpine:latest
+    port: "8080:80"
+    volumes:
+      - "./:/usr/src/app"
 
 default_strategy: run
 
@@ -23,22 +26,7 @@ commands:
   bundle: run
 `
 
-var yamlWithExtraAttributes = `
-strategies:
-  run:
-    handler: docker_compose_run
-    service: app
-    remove: true
-  run_with_docker:
-    handler: docker_run
-    image: alpine:latest
-
-default_strategy: run
-
-commands:
-  ls: run_with_docker
-  bundle: run
-
+var yamlWithExtraAttributes = fullYaml + `
 something-else:
   foo: bar
 `
@@ -54,6 +42,8 @@ func TestParseYaml(t *testing.T) {
 			"run_with_docker": {
 				"handler": "docker_run",
 				"image":   "alpine:latest",
+				"port":    "8080:80",
+				"volumes": []interface{}{"./:/usr/src/app"},
 			},
 		},
 		DefaultStrategy: "run",

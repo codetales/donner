@@ -26,10 +26,12 @@ func (h *FallbackHandler) validate() error {
 	return nil
 }
 
-// DockerRunHandler wraps a command with `docker container run`
+// DockerRunHandler wraps a command with `docker run`
 type DockerRunHandler struct {
-	Remove bool
-	Image  string
+	Remove  bool
+	Image   string
+	Port    string
+	Volumes []string
 }
 
 // BuildCommand performs the actual wrapping of the command
@@ -42,6 +44,14 @@ func (h *DockerRunHandler) BuildCommand(command []string) []string {
 
 	if h.Image != "" {
 		wrappedCommand = append(wrappedCommand, h.Image)
+	}
+
+	if h.Port != "" {
+		wrappedCommand = append(wrappedCommand, "-p ", h.Port)
+	}
+
+	for _, v := range h.Volumes {
+		wrappedCommand = append(wrappedCommand, "-v ", v)
 	}
 
 	return append(wrappedCommand, command...)

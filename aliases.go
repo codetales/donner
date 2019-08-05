@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"strings"
 )
 
-func printAliases(cfg *Cfg, strictMode, fallbackMode bool) {
+const evalInstruction = "\n# copy and paste the output into your terminal or run\n"
+
+func printAliases(w io.Writer, cfg *Cfg, strictMode, fallbackMode bool) {
 	commands := cfg.ListCommands()
 	outputs := make([]string, len(commands))
 
@@ -25,11 +28,11 @@ func printAliases(cfg *Cfg, strictMode, fallbackMode bool) {
 
 	fmt.Println()
 	for i, c := range commands {
-		fmt.Printf("alias %s='donner run %s';\n", c, outputs[i])
+		_, _ = fmt.Fprintf(w, "alias %s='donner run %s';\n", c, outputs[i])
 	}
 
 	aliasCommand := strings.Join(append([]string{"donner", "aliases"}, flags...), " ")
 
-	fmt.Printf("\n# copy and paste the output into your terminal or run\n")
-	fmt.Printf("#  eval $(%s)\n", aliasCommand)
+	_, _ = fmt.Fprintf(w, evalInstruction)
+	_, _ = fmt.Fprintf(w, "#  eval $(%s)\n", aliasCommand)
 }
