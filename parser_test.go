@@ -22,7 +22,7 @@ func TestGenerateHandler(t *testing.T) {
 	}{
 		"valid handler":     {&Cfg{handler: map[string]Handler{}}, "test", map[string]interface{}{"handler": "docker_compose_run", "service": "app"}, ""},
 		"invalid handler":   {&Cfg{}, "test", map[string]interface{}{"handler": "docker_compose_run"}, "error in strategy test: field service required but not set"},
-		"additional fields": {&Cfg{}, "foo", map[string]interface{}{"handler": "docker_compose_run", "service": "test", "other": "field"}, "error in strategy foo: additonal field(s) detected: other"},
+		"additional fields": {&Cfg{}, "foo", map[string]interface{}{"handler": "docker_compose_run", "service": "test", "other": "field"}, "error in strategy foo: additional field(s) detected: other"},
 		"invalid type":      {&Cfg{}, "foo", map[string]interface{}{"handler": "docker_compose_run", "service": true, "remove": "foo"}, "error in strategy foo: 2 error(s) decoding:\n\n* 'Remove' expected type 'bool', got unconvertible type 'string'\n* 'Service' expected type 'string', got unconvertible type 'bool'"},
 	}
 

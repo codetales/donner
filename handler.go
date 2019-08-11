@@ -154,7 +154,7 @@ func validateHandler(handler Handler, metadata *mapstructure.Metadata) error {
 	}
 
 	if len(metadata.Unused) > 0 {
-		return fmt.Errorf("additonal field(s) detected: %v", strings.Join(metadata.Unused, ", "))
+		return fmt.Errorf("additional field(s) detected: %v", strings.Join(metadata.Unused, ", "))
 	}
 
 	return nil
