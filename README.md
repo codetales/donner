@@ -1,5 +1,6 @@
 # Donner
 [![Go Report Card](https://goreportcard.com/badge/github.com/codetales/donner)](https://goreportcard.com/report/github.com/codetales/donner)
+[![Build Status](https://travis-ci.com/codetales/donner.svg?branch=master)](https://travis-ci.com/codetales/donner)
 
 :boom: Donner is a generic command wrapper. It let's you define strategies to wrap commands in things like `docker-compose exec` or `docker container run`.
 This is can come in very handy when developing applications in containers.  
@@ -96,7 +97,6 @@ alias irb='donner run --fallback --strict irb'
 ```
 
 ## TODO
-* Setup CI builds
 * Ensure useful error messages and test failure cases
 * Add missing flags to the handlers (volumes, ...)
 * Add documentation
